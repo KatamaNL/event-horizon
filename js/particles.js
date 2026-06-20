@@ -125,6 +125,8 @@ class Field {
     this.burstX = 0;
     this.burstY = 0;
     this.audioBoost = 0;
+    this.rings = []; // shockwave-ringen bij klik
+    this.hue = 0;    // langzaam roterende basistint voor het web
     // DPR gecapt op 1.5: een shadow-blur-zwaar canvas op retina (2x) is 4x zo duur
     this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     this.resize();
@@ -167,7 +169,10 @@ class Field {
     }, { passive: true });
     window.addEventListener('touchend', () => { this.pointer.active = false; });
 
-    const fire = (x, y) => { this.burst = 1; this.burstX = x; this.burstY = y; };
+    const fire = (x, y) => {
+      this.burst = 1; this.burstX = x; this.burstY = y;
+      this.rings.push({ x, y, r: 0, life: 1 }); // shockwave
+    };
     window.addEventListener('click', (e) => {
       // negeer klikken op echte UI-knoppen
       if (e.target && typeof e.target.closest === 'function' && e.target.closest('button, a')) return;
@@ -183,15 +188,91 @@ class Field {
     ctx.fillStyle = 'rgba(5, 1, 15, 0.22)';
     ctx.fillRect(0, 0, w, h);
 
+    this.hue = (this.hue + 0.3) % 360;
     ctx.globalCompositeOperation = 'lighter';
-    for (const p of this.particles) {
-      p.step(this);
-      p.draw(ctx, this.audioBoost);
+
+    // 1. stap alle deeltjes
+    for (const p of this.particles) p.step(this);
+
+    // 2. constellation-web: lijntjes tussen nabije deeltjes
+    this.drawWeb(ctx);
+
+    // 3. cursor-glow als zachte lichtbron
+    if (this.pointer.active) {
+      const cg = 90 + this.audioBoost * 120;
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(glowSprites['#7afcff'], this.pointer.x - cg, this.pointer.y - cg, cg * 2, cg * 2);
     }
+
+    // 4. teken de deeltjes zelf bovenop het web
+    for (const p of this.particles) p.draw(ctx, this.audioBoost);
+
+    // 5. shockwave-ringen
+    this.drawRings(ctx);
+
     ctx.globalCompositeOperation = 'source-over';
 
     if (this.burst > 0) this.burst = Math.max(0, this.burst - 0.08);
     this.audioBoost *= 0.9;
+  }
+
+  drawWeb(ctx) {
+    const ps = this.particles;
+    const MAX = 130, MAX2 = MAX * MAX;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < ps.length; i++) {
+      const a = ps[i];
+      for (let j = i + 1; j < ps.length; j++) {
+        const b = ps[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > MAX2) continue;
+        const alpha = (1 - Math.sqrt(d2) / MAX) * 0.5;
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = a.color;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      // verbind ook met de cursor voor een 'spinnenweb aan je vinger'-effect
+      if (this.pointer.active) {
+        const dx = a.x - this.pointer.x, dy = a.y - this.pointer.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < MAX2 * 2.2) {
+          ctx.globalAlpha = (1 - Math.sqrt(d2) / (MAX * 1.5)) * 0.4;
+          if (ctx.globalAlpha > 0) {
+            ctx.strokeStyle = '#7afcff';
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(this.pointer.x, this.pointer.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  drawRings(ctx) {
+    for (let i = this.rings.length - 1; i >= 0; i--) {
+      const r = this.rings[i];
+      r.r += 14;
+      r.life -= 0.022;
+      if (r.life <= 0) { this.rings.splice(i, 1); continue; }
+      ctx.globalAlpha = r.life * 0.6;
+      ctx.lineWidth = 2 + r.life * 3;
+      ctx.strokeStyle = '#ff2bd6';
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      ctx.stroke();
+      // tweede, snellere cyan-ring eromheen
+      ctx.globalAlpha = r.life * 0.4;
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#00f0ff';
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r * 1.25, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 }
 

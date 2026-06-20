@@ -12,12 +12,18 @@ function loop() {
 }
 requestAnimationFrame(loop);
 
-/* ---- HUD coords volgen de cursor ---- */
+/* ---- HUD coords + title-parallax volgen de cursor ---- */
 const coords = document.getElementById('coords');
+const title = document.querySelector('.glitch');
 window.addEventListener('mousemove', (e) => {
-  const x = ((e.clientX / window.innerWidth) * 100).toFixed(2);
-  const y = ((e.clientY / window.innerHeight) * 100).toFixed(2);
-  coords.textContent = `${x} / ${y}`;
+  const nx = e.clientX / window.innerWidth;
+  const ny = e.clientY / window.innerHeight;
+  coords.textContent = `${(nx * 100).toFixed(2)} / ${(ny * 100).toFixed(2)}`;
+  if (title && !reduceMotion) {
+    const tx = (nx - 0.5) * 26;
+    const ty = (ny - 0.5) * 18;
+    title.style.transform = `translate(${tx}px, ${ty}px) rotateX(${ -ty * 0.4 }deg) rotateY(${ tx * 0.4 }deg)`;
+  }
 });
 
 /* ---- Scroll-reveal voor panels ---- */
