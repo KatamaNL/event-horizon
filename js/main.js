@@ -2,6 +2,7 @@
 
 const canvas = document.getElementById('field');
 const field = new window.EventHorizon.Field(canvas);
+window.__ehField = field; // voor debug/verificatie
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

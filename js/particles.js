@@ -3,6 +3,29 @@
 
 const NEON = ['#00f0ff', '#ff2bd6', '#9b5cff', '#7afcff'];
 
+/* Vooraf-getekende glow-sprite per kleur. shadowBlur per deeltje is op canvas
+   loodzwaar; een radial-gradient sprite die we met drawImage + 'lighter'
+   compositen geeft dezelfde bloom voor een fractie van de kosten. */
+const GLOW_SIZE = 64;
+const glowSprites = {};
+function buildGlowSprites() {
+  for (const color of NEON) {
+    const c = document.createElement('canvas');
+    c.width = c.height = GLOW_SIZE;
+    const g = c.getContext('2d');
+    const r = GLOW_SIZE / 2;
+    const grad = g.createRadialGradient(r, r, 0, r, r, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.25, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.arc(r, r, r, 0, Math.PI * 2);
+    g.fill();
+    glowSprites[color] = c;
+  }
+}
+
 class Particle {
   constructor(w, h) {
     this.reset(w, h);
@@ -18,6 +41,7 @@ class Particle {
     this.vy = (Math.random() - 0.5) * 0.4;
     this.size = Math.random() * 1.8 + 0.6;
     this.color = NEON[(Math.random() * NEON.length) | 0];
+    this.sprite = glowSprites[this.color];
     this.baseAlpha = Math.random() * 0.5 + 0.3;
   }
 
@@ -38,14 +62,16 @@ class Particle {
       this.vy += (dy / dist) * force * 0.6 * dir;
     }
 
-    // singulariteit-puls (klik): radiale impuls vanaf klikpunt
+    // singulariteit-puls (klik): begrensde radiale impuls met afstand-falloff
     if (field.burst > 0) {
       const bdx = this.x - field.burstX;
       const bdy = this.y - field.burstY;
       const bd = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
-      const push = field.burst * 6;
-      this.vx += (bdx / bd) * push / bd * 60;
-      this.vy += (bdy / bd) * push / bd * 60;
+      // sterkte zakt met afstand; gecapt zodat deeltjes vlakbij niet exploderen
+      const falloff = Math.max(0, 1 - bd / 600);
+      const push = field.burst * falloff * 9;
+      this.vx += (bdx / bd) * push;
+      this.vy += (bdy / bd) * push;
     }
 
     // audio-reactief: lichte jitter op het volume
@@ -57,6 +83,16 @@ class Particle {
     // demping + beweging
     this.vx *= 0.94;
     this.vy *= 0.94;
+
+    // snelheidsplafond: voorkomt dat glow/grootte exploderen en de GPU verstikken
+    const MAX_V = 16;
+    const v2 = this.vx * this.vx + this.vy * this.vy;
+    if (v2 > MAX_V * MAX_V) {
+      const s = MAX_V / Math.sqrt(v2);
+      this.vx *= s;
+      this.vy *= s;
+    }
+
     this.x += this.vx;
     this.y += this.vy;
 
@@ -70,19 +106,17 @@ class Particle {
   }
 
   draw(ctx, audioBoost) {
-    const glow = Math.min(1, this.baseAlpha + this.speed * 0.08 + audioBoost);
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size + this.speed * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
+    const glow = Math.min(1, this.baseAlpha + this.speed * 0.05 + audioBoost);
+    // bloom-radius schaalt met grootte + snelheid, gecapt zodat niets explodeert
+    const r = Math.min(26, (this.size + this.speed * 0.2) * 6);
     ctx.globalAlpha = glow;
-    ctx.shadowBlur = 12 + this.speed * 2;
-    ctx.shadowColor = this.color;
-    ctx.fill();
+    ctx.drawImage(this.sprite, this.x - r, this.y - r, r * 2, r * 2);
   }
 }
 
 class Field {
   constructor(canvas) {
+    buildGlowSprites();
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.particles = [];
@@ -91,7 +125,8 @@ class Field {
     this.burstX = 0;
     this.burstY = 0;
     this.audioBoost = 0;
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // DPR gecapt op 1.5: een shadow-blur-zwaar canvas op retina (2x) is 4x zo duur
+    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     this.resize();
     this.bindPointer();
     window.addEventListener('resize', () => this.resize());
@@ -107,8 +142,8 @@ class Field {
     canvas.style.height = this.h + 'px';
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-    // deeltjesaantal schaalt met schermoppervlak, gecapt voor mobiel
-    const target = Math.min(420, Math.round((this.w * this.h) / 5200));
+    // deeltjesaantal schaalt met schermoppervlak, gecapt voor soepele framerate
+    const target = Math.min(260, Math.round((this.w * this.h) / 8500));
     while (this.particles.length < target) this.particles.push(new Particle(this.w, this.h));
     this.particles.length = target;
 
@@ -135,7 +170,7 @@ class Field {
     const fire = (x, y) => { this.burst = 1; this.burstX = x; this.burstY = y; };
     window.addEventListener('click', (e) => {
       // negeer klikken op echte UI-knoppen
-      if (e.target.closest('button, a')) return;
+      if (e.target && typeof e.target.closest === 'function' && e.target.closest('button, a')) return;
       fire(e.clientX, e.clientY);
     });
   }
