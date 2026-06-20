@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05010f" />
+  <title>EVENT HORIZON</title>
+  <meta name="description" content="Een interactief neon deeltjes-experiment. Beweeg, scroll, voel de zwaartekracht." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syncopate:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="field" aria-hidden="true"></canvas>
+
+  <header class="hud">
+    <span class="hud__mark">◉ E/H</span>
+    <span class="hud__coords" id="coords">00.00 / 00.00</span>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <p class="hero__kicker">interactief deeltjesveld &mdash; beweeg je cursor</p>
+      <h1 class="glitch" data-text="EVENT&#10;HORIZON">EVENT<br />HORIZON</h1>
+      <p class="hero__sub">Honderden lichtpunten gevangen in jouw zwaartekracht. Klik om de singulariteit te laten exploderen.</p>
+      <button class="audio-toggle" id="audioToggle" aria-pressed="false">
+        <span class="audio-toggle__dot"></span> audio-reactief: uit
+      </button>
+    </section>
+
+    <section class="panel" data-glow="cyan">
+      <span class="panel__num">01</span>
+      <h2>Zwaartekracht</h2>
+      <p>Elk deeltje voelt jouw cursor. Kom dichtbij en ze worden naar je toe gezogen; trek weg en ze spatten uiteen in trails van licht.</p>
+    </section>
+
+    <section class="panel" data-glow="magenta">
+      <span class="panel__num">02</span>
+      <h2>Singulariteit</h2>
+      <p>Eén klik en het hele veld implodeert naar één punt, om vervolgens met volle kracht naar buiten te knallen. Pure kinetische neon.</p>
+    </section>
+
+    <section class="panel" data-glow="violet">
+      <span class="panel__num">03</span>
+      <h2>Resonantie</h2>
+      <p>Zet audio-reactief aan en het veld ademt mee op het geluid om je heen. Geen build-stap, geen frameworks &mdash; alleen licht en wiskunde.</p>
+    </section>
+
+    <section class="grid-floor" id="floor">
+      <h2 class="grid-floor__title">voorbij de horizon</h2>
+      <p class="grid-floor__credit">vanilla canvas &middot; 60fps &middot; gemaakt om te staren</p>
+    </section>
+  </main>
+
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
