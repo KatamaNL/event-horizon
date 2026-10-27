@@ -1,5 +1,8 @@
 # Changelog
 
+## [Unreleased] - 2026-10-27
+- Repo verhuisd naar KatamaNL; Live-link in README wijst nu naar katamanl.github.io/event-horizon (@herriaan)
+
 ## [1.1.0] - 2026-06-20
 - Constellation-web: neon lijntjes tussen nabije deeltjes, verbindt mee met je cursor (@herriaan)
 - Cursor-glow: zachte lichtbron die je muis volgt, pulseert mee op audio (@herriaan)
