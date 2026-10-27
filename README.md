@@ -2,7 +2,7 @@
 
 Een interactief neon deeltjes-experiment. Volledig vanilla: één `index.html`, losse CSS en JS, geen build-stap, geen dependencies.
 
-**Live:** https://herriaan.github.io/event-horizon/
+**Live:** https://katamanl.github.io/event-horizon/
 
 ## Wat het doet
 - Honderden neon-deeltjes op een `<canvas>` die op je cursor reageren (aantrekken van veraf, afstoten dichtbij).
